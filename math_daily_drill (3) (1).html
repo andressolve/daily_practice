@@ -1,0 +1,457 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Daily Drill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@0.12.0/dist/js-confetti.browser.js"></script>
+    <style>
+        .square-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+        .square {
+            aspect-ratio: 1/1;
+            background-color: #e5e7eb;
+        }
+        .colored {
+            background-color: #3b82f6;
+        }
+        #rectangleGrid {
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        #rectangleGrid svg {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-100 to-blue-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center text-green-600 mb-4">🧮 Math Daily Drill 🧮</h1>
+        
+        <div class="mb-4">
+            <div class="flex justify-between mb-2">
+                <div class="text-lg">Score: <span id="score">0</span></div>
+                <div class="text-lg">Streak: <span id="streak">0</span> 🔥</div>
+            </div>
+            <div class="text-lg">High Score: <span id="highScore">0</span></div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div id="progressBar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="question" class="text-xl text-center mb-6 font-semibold"></div>
+        <div id="fractionGrid" class="hidden mb-4"></div>
+        <div id="rectangleGrid" class="hidden mb-4"></div>
+        
+        <div id="options" class="grid grid-cols-1 gap-3"></div>
+        
+        <div id="feedback" class="text-center text-lg mt-4 hidden"></div>
+        
+        <div class="flex justify-center gap-4 mt-6">
+            <button id="nextBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition hidden">Next</button>
+            <button id="restartBtn" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        const problemPool = [
+            // One-digit multiplication
+            { type: "multiplication", question: "3 × 4", answer: "12", emoji: "⭐" },
+            { type: "multiplication", question: "5 × 2", answer: "10", emoji: "⭐" },
+            { type: "multiplication", question: "7 × 3", answer: "21", emoji: "⭐" },
+            { type: "multiplication", question: "4 × 6", answer: "24", emoji: "⭐" },
+            { type: "multiplication", question: "8 × 2", answer: "16", emoji: "⭐" },
+            { type: "multiplication", question: "6 × 5", answer: "30", emoji: "⭐" },
+            { type: "multiplication", question: "9 × 3", answer: "27", emoji: "⭐" },
+            { type: "multiplication", question: "2 × 7", answer: "14", emoji: "⭐" },
+            { type: "multiplication", question: "5 × 5", answer: "25", emoji: "⭐" },
+            { type: "multiplication", question: "4 × 8", answer: "32", emoji: "⭐" },
+
+            // Simple division
+            { type: "division", question: "12 ÷ 3", answer: "4", emoji: "➡️" },
+            { type: "division", question: "15 ÷ 5", answer: "3", emoji: "➡️" },
+            { type: "division", question: "18 ÷ 2", answer: "9", emoji: "➡️" },
+            { type: "division", question: "24 ÷ 4", answer: "6", emoji: "➡️" },
+            { type: "division", question: "21 ÷ 7", answer: "3", emoji: "➡️" },
+            { type: "division", question: "16 ÷ 4", answer: "4", emoji: "➡️" },
+            { type: "division", question: "27 ÷ 9", answer: "3", emoji: "➡️" },
+            { type: "division", question: "20 ÷ 5", answer: "4", emoji: "➡️" },
+            { type: "division", question: "30 ÷ 6", answer: "5", emoji: "➡️" },
+            { type: "division", question: "28 ÷ 7", answer: "4", emoji: "➡️" },
+
+            // Basic addition
+            { type: "addition", question: "3 + 4", answer: "7", emoji: "➕" },
+            { type: "addition", question: "5 + 2", answer: "7", emoji: "➕" },
+            { type: "addition", question: "7 + 3", answer: "10", emoji: "➕" },
+            { type: "addition", question: "4 + 6", answer: "10", emoji: "➕" },
+            { type: "addition", question: "8 + 2", answer: "10", emoji: "➕" },
+            { type: "addition", question: "6 + 5", answer: "11", emoji: "➕" },
+            { type: "addition", question: "9 + 3", answer: "12", emoji: "➕" },
+            { type: "addition", question: "2 + 7", answer: "9", emoji: "➕" },
+            { type: "addition", question: "5 + 5", answer: "10", emoji: "➕" },
+            { type: "addition", question: "4 + 8", answer: "12", emoji: "➕" },
+
+            // Basic subtraction
+            { type: "subtraction", question: "8 - 3", answer: "5", emoji: "➖" },
+            { type: "subtraction", question: "10 - 4", answer: "6", emoji: "➖" },
+            { type: "subtraction", question: "12 - 5", answer: "7", emoji: "➖" },
+            { type: "subtraction", question: "9 - 2", answer: "7", emoji: "➖" },
+            { type: "subtraction", question: "15 - 6", answer: "9", emoji: "➖" },
+            { type: "subtraction", question: "11 - 3", answer: "8", emoji: "➖" },
+            { type: "subtraction", question: "7 - 4", answer: "3", emoji: "➖" },
+            { type: "subtraction", question: "14 - 5", answer: "9", emoji: "➖" },
+            { type: "subtraction", question: "16 - 8", answer: "8", emoji: "➖" },
+            { type: "subtraction", question: "13 - 7", answer: "6", emoji: "➖" },
+
+            // Basic area (rectangle)
+            { type: "area", question: "Area of rectangle: length 3, width 4", answer: "12", emoji: "⬛", dimensions: { length: 3, width: 4 } },
+            { type: "area", question: "Area of rectangle: length 5, width 2", answer: "10", emoji: "⬛", dimensions: { length: 5, width: 2 } },
+            { type: "area", question: "Area of rectangle: length 4, width 3", answer: "12", emoji: "⬛", dimensions: { length: 4, width: 3 } },
+            { type: "area", question: "Area of rectangle: length 6, width 2", answer: "12", emoji: "⬛", dimensions: { length: 6, width: 2 } },
+            { type: "area", question: "Area of rectangle: length 5, width 3", answer: "15", emoji: "⬛", dimensions: { length: 5, width: 3 } },
+            { type: "area", question: "Area of rectangle: length 4, width 4", answer: "16", emoji: "⬛", dimensions: { length: 4, width: 4 } },
+            { type: "area", question: "Area of rectangle: length 7, width 2", answer: "14", emoji: "⬛", dimensions: { length: 7, width: 2 } },
+            { type: "area", question: "Area of rectangle: length 3, width 5", answer: "15", emoji: "⬛", dimensions: { length: 3, width: 5 } },
+            { type: "area", question: "Area of rectangle: length 6, width 3", answer: "18", emoji: "⬛", dimensions: { length: 6, width: 3 } },
+            { type: "area", question: "Area of rectangle: length 8, width 2", answer: "16", emoji: "⬛", dimensions: { length: 8, width: 2 } },
+
+            // Basic perimeter (rectangle)
+            { type: "perimeter", question: "Perimeter of rectangle: length 3, width 4", answer: "14", emoji: "📏", dimensions: { length: 3, width: 4 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 5, width 2", answer: "14", emoji: "📏", dimensions: { length: 5, width: 2 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 4, width 3", answer: "14", emoji: "📏", dimensions: { length: 4, width: 3 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 6, width 2", answer: "16", emoji: "📏", dimensions: { length: 6, width: 2 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 5, width 3", answer: "16", emoji: "📏", dimensions: { length: 5, width: 3 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 4, width 4", answer: "16", emoji: "📏", dimensions: { length: 4, width: 4 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 7, width 2", answer: "18", emoji: "📏", dimensions: { length: 7, width: 2 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 3, width 5", answer: "16", emoji: "📏", dimensions: { length: 3, width: 5 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 6, width 3", answer: "18", emoji: "📏", dimensions: { length: 6, width: 3 } },
+            { type: "perimeter", question: "Perimeter of rectangle: length 8, width 2", answer: "20", emoji: "📏", dimensions: { length: 8, width: 2 } },
+
+            // Basic fractions (numerical)
+            { type: "fraction", question: "1/3 of 12", answer: "4", emoji: "🍰" },
+            { type: "fraction", question: "1/2 of 10", answer: "5", emoji: "🍰" },
+            { type: "fraction", question: "1/4 of 16", answer: "4", emoji: "🍰" },
+            { type: "fraction", question: "2/3 of 9", answer: "6", emoji: "🍰" },
+            { type: "fraction", question: "3/4 of 8", answer: "6", emoji: "🍰" },
+            { type: "fraction", question: "1/5 of 15", answer: "3", emoji: "🍰" },
+            { type: "fraction", question: "2/5-of-10", answer: "4", emoji: "🍰" },
+            { type: "fraction", question: "1/2 of 14", answer: "7", emoji: "🍰" },
+            { type: "fraction", question: "3/5 of 10", answer: "6", emoji: "🍰" },
+            { type: "fraction", question: "1/4 of 20", answer: "5", emoji: "🍰" },
+
+            // Visual fraction (rectangle with colored squares)
+            { type: "fraction-visual", question: "What fraction of the squares are blue?", grid: { total: 12, colored: 3 }, answer: "3/12", emoji: "🟦" },
+            { type: "fraction-visual", question: "What fraction of the squares are blue?", grid: { total: 12, colored: 4 }, answer: "4/12", emoji: "🟦" },
+            { type: "fraction-visual", question: "What fraction of the squares are blue?", grid: { total: 12, colored: 6 }, answer: "6/12", emoji: "🟦" },
+            { type: "fraction-visual", question: "What fraction of the squares are blue?", grid: { total: 12, colored: 9 }, answer: "9/12", emoji: "🟦" },
+            { type: "fraction-visual", question: "What fraction of the squares are blue?", grid: { total: 12, colored: 2 }, answer: "2/12", emoji: "🟦" }
+        ];
+
+        let score = 0;
+        let streak = 0;
+        let highScore = localStorage.getItem('mathHighScore') || 0;
+        let questionDeck = [];
+        let currentIndex = 0;
+        const confetti = new JSConfetti();
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function initializeDeck() {
+            questionDeck = [...problemPool];
+            shuffleArray(questionDeck);
+            currentIndex = 0;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const progress = (currentIndex / questionDeck.length) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function generateFractionGrid(total, colored) {
+            const gridDiv = document.getElementById('fractionGrid');
+            gridDiv.innerHTML = '';
+            gridDiv.classList.remove('hidden');
+            const container = document.createElement('div');
+            container.className = 'square-grid';
+            for (let i = 0; i < total; i++) {
+                const square = document.createElement('div');
+                square.className = 'square';
+                if (i < colored) {
+                    square.classList.add('colored');
+                }
+                container.appendChild(square);
+            }
+            gridDiv.appendChild(container);
+        }
+
+        function generateRectangleSVG(length, width) {
+            const gridDiv = document.getElementById('rectangleGrid');
+            gridDiv.innerHTML = '';
+            gridDiv.classList.remove('hidden');
+
+            // Scale dimensions for visibility (20 pixels per unit)
+            const scale = 20;
+            const svgWidth = length * scale + 60; // Padding for width label on left
+            const svgHeight = width * scale + 60; // Padding for top and bottom
+            const rectX = 40; // Left padding for width label
+            const rectY = 30; // Top padding to avoid clipping length label
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", svgWidth);
+            svg.setAttribute("height", svgHeight);
+            svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+
+            // Draw rectangle
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", rectX);
+            rect.setAttribute("y", rectY);
+            rect.setAttribute("width", length * scale);
+            rect.setAttribute("height", width * scale);
+            rect.setAttribute("stroke", "#000000");
+            rect.setAttribute("stroke-width", "3");
+            rect.setAttribute("fill", "#e5e7eb");
+            svg.appendChild(rect);
+
+            // Add length label (top, just number)
+            const lengthLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            lengthLabel.setAttribute("x", rectX + (length * scale) / 2);
+            lengthLabel.setAttribute("y", rectY - 10);
+            lengthLabel.setAttribute("text-anchor", "middle");
+            lengthLabel.setAttribute("font-size", "16");
+            lengthLabel.setAttribute("font-weight", "bold");
+            lengthLabel.textContent = `${length}`;
+            svg.appendChild(lengthLabel);
+
+            // Add width label (left, just number, horizontal)
+            const widthLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            widthLabel.setAttribute("x", rectX - 20); // Offset left of rectangle
+            widthLabel.setAttribute("y", rectY + (width * scale) / 2);
+            widthLabel.setAttribute("text-anchor", "middle");
+            widthLabel.setAttribute("font-size", "16");
+            widthLabel.setAttribute("font-weight", "bold");
+            widthLabel.textContent = `${width}`;
+            svg.appendChild(widthLabel);
+
+            gridDiv.appendChild(svg);
+        }
+
+        function generateQuestion() {
+            if (currentIndex >= questionDeck.length) {
+                initializeDeck();
+            }
+
+            const item = questionDeck[currentIndex];
+            const questionDiv = document.getElementById('question');
+            const optionsDiv = document.getElementById('options');
+            const feedback = document.getElementById('feedback');
+            const nextBtn = document.getElementById('nextBtn');
+            const fractionGrid = document.getElementById('fractionGrid');
+            const rectangleGrid = document.getElementById('rectangleGrid');
+
+            feedback.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            optionsDiv.innerHTML = '';
+            fractionGrid.classList.add('hidden');
+            rectangleGrid.classList.add('hidden');
+
+            questionDiv.textContent = `${item.emoji}  ${item.question}`;
+
+            if (item.type === 'fraction-visual') {
+                generateFractionGrid(item.grid.total, item.grid.colored);
+            } else if (item.type === 'area' || item.type === 'perimeter') {
+                generateRectangleSVG(item.dimensions.length, item.dimensions.width);
+            }
+
+            const answers = [item.answer];
+            while (answers.length < 4) {
+                let wrong;
+                if (item.type === 'fraction-visual') {
+                    const numerators = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                    const denominators = [12];
+                    const numerator = numerators[Math.floor(Math.random() * numerators.length)];
+                    wrong = `${numerator}/12`;
+                } else {
+                    const offset = Math.floor(Math.random() * 10) + 1;
+                    wrong = String(Number(item.answer) + (Math.random() < 0.5 ? offset : -offset));
+                    if (wrong === '0' || wrong.includes('-')) continue;
+                }
+                if (!answers.includes(wrong) && wrong !== item.answer) {
+                    answers.push(wrong);
+                }
+            }
+            shuffleArray(answers);
+
+            answers.forEach(answer => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 transition focus:outline-none focus:ring-2 focus:ring-green-500';
+                btn.textContent = answer;
+                btn.setAttribute('role', 'button');
+                btn.setAttribute('aria-label', `Option: ${answer}`);
+                btn.onclick = () => checkMultipleChoice(answer, item.answer);
+                btn.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        checkMultipleChoice(answer, item.answer);
+                    }
+                };
+                optionsDiv.appendChild(btn);
+            });
+
+            currentIndex++;
+            updateProgress();
+        }
+
+        function checkMultipleChoice(selected, correct) {
+            const feedback = document.getElementById('feedback');
+            const nextBtn = document.getElementById('nextBtn');
+            const options = document.querySelectorAll('#options button');
+            const isCorrect = selected === correct;
+
+            options.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('cursor-not-allowed', 'opacity-50');
+            });
+
+            if (isCorrect) {
+                score++;
+                streak++;
+                feedback.textContent = '🎉 Correct!';
+                feedback.className = 'text-center text-lg mt-4 text-green-600';
+                feedback.classList.remove('hidden');
+                if (streak === 5) {
+                    confetti.addConfetti();
+                }
+                setTimeout(generateQuestion, 1000);
+            } else {
+                streak = 0;
+                feedback.textContent = `❤️ Nope! It’s "${correct}".`;
+                feedback.className = 'text-center text-lg mt-4 text-red-600';
+                feedback.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+            }
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('mathHighScore', highScore);
+                document.getElementById('highScore').textContent = highScore;
+            }
+        }
+
+        function restartDrill() {
+            score = 0;
+            streak = 0;
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+            document.getElementById('fractionGrid').classList.add('hidden');
+            document.getElementById('rectangleGrid').classList.add('hidden');
+            initializeDeck();
+            generateQuestion();
+        }
+
+        document.getElementById('restartBtn').addEventListener('click', restartDrill);
+        document.getElementById('nextBtn').addEventListener('click', generateQuestion);
+        document.getElementById('highScore').textContent = highScore;
+
+        initializeDeck();
+        generateQuestion();
+    </script>
+</body>
+</html>
